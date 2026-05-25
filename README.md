@@ -16,6 +16,15 @@ This branch adds an embedded web console to the SRTLA-capable server. It is serv
 
 ### Run with Docker Compose
 
+The GitHub workflow publishes branch images to GitHub Container Registry. For this feature branch, use:
+
+```bash
+docker pull ghcr.io/themusicnerd/irl-srt-server:gui-dashboard
+docker run --rm -p 8181:8181/tcp -p 4000-4002:4000-4002/udp ghcr.io/themusicnerd/irl-srt-server:gui-dashboard
+```
+
+For a local build with the included config mounted for editing:
+
 ```bash
 mkdir -p logs
 docker compose -f docker-compose.gui.yml up --build -d
