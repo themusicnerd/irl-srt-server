@@ -12,6 +12,9 @@ This branch adds an embedded web console to the SRTLA-capable server. It is serv
 - connection URL builder for direct SRT, SRTLA and playback roles
 - active publisher monitoring using the existing `/stats` API
 - latency, RTT, receive bitrate, loss, drops and receive buffer display
+- rolling connection metric charts for a selected stream
+- HLS-based browser preview with video, audio playback and video-frame snapshots
+- built-in operational help at `/help`
 - explicit guidance on the scope of SRT timestamp-based packet delivery (TSBPD)
 
 ### Run with Docker Compose
@@ -49,6 +52,14 @@ api_keys replace-with-a-random-secret;
 ```
 
 Enter the same key in the web console. It is retained only in browser session storage and sent as the `Authorization` header for `/stats` requests.
+
+### Media Preview
+
+SRT media is not directly playable in a web browser. The GUI image enables HLS recording for publishers, maintains a live playlist beneath `/tmp/mov/sls`, and serves preview media through `/media/`. Select the publisher role and stream name in the dashboard Feed Monitor to play video and audio or capture the displayed frame.
+
+The default HLS segment length is 2 seconds, so preview is deliberately delayed by several seconds. The initial implementation retains preview segments for the lifetime of the container; production deployments should mount appropriate storage and establish cleanup or retention policy.
+
+Safari can use native HLS playback. Other supported browsers load `hls.js` from jsDelivr in the dashboard, so those browser clients require access to that CDN.
 
 ### Timing And Multiple Feeds
 

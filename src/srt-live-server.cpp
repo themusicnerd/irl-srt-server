@@ -26,6 +26,9 @@
 #include <signal.h>
 #include <unistd.h>
 #include <httplib.h>
+#include <cctype>
+#include <fstream>
+#include <sstream>
 #include "spdlog/spdlog.h"
 
 using namespace std;
@@ -91,6 +94,37 @@ void httpWorker(int bindPort)
 
 bool file_exists(const char *path) {
     return access(path, R_OK) == 0;
+}
+
+bool is_safe_media_path(const std::string &path)
+{
+    if (path.empty() || path.find("..") != std::string::npos || path[0] == '/')
+    {
+        return false;
+    }
+    for (char ch : path)
+    {
+        if (!std::isalnum(static_cast<unsigned char>(ch)) && ch != '/' && ch != '-' && ch != '_' && ch != '.')
+        {
+            return false;
+        }
+    }
+    const bool playlist = path.size() >= 5 && path.compare(path.size() - 5, 5, ".m3u8") == 0;
+    const bool segment = path.size() >= 3 && path.compare(path.size() - 3, 3, ".ts") == 0;
+    return playlist || segment;
+}
+
+bool read_media_file(const std::string &path, std::string &contents)
+{
+    std::ifstream input(("/tmp/mov/sls/" + path).c_str(), std::ios::binary);
+    if (!input.good())
+    {
+        return false;
+    }
+    std::ostringstream stream;
+    stream << input.rdbuf();
+    contents = stream.str();
+    return true;
 }
 
 int main(int argc, char *argv[])
@@ -232,6 +266,30 @@ int main(int argc, char *argv[])
 
     svr.Get("/dashboard", [&](const Request&, Response& res) {
         res.set_content(SLS_DASHBOARD_HTML, "text/html; charset=utf-8");
+    });
+
+    svr.Get("/help", [&](const Request&, Response& res) {
+        res.set_content(SLS_HELP_HTML, "text/html; charset=utf-8");
+    });
+
+    svr.Get(R"(/media/(.+))", [&](const Request& req, Response& res) {
+        const std::string relative_path = req.matches[1].str();
+        if (!is_safe_media_path(relative_path)) {
+            res.status = 400;
+            res.set_content("Invalid preview media path.", "text/plain");
+            return;
+        }
+
+        std::string contents;
+        if (!read_media_file(relative_path, contents)) {
+            res.status = 404;
+            res.set_content("Preview media not found.", "text/plain");
+            return;
+        }
+
+        const bool playlist = relative_path.size() >= 5 && relative_path.compare(relative_path.size() - 5, 5, ".m3u8") == 0;
+        res.set_header("Cache-Control", "no-store");
+        res.set_content(contents, playlist ? "application/vnd.apple.mpegurl" : "video/mp2t");
     });
 
     svr.Get("/stats", [&](const Request& req, Response& res) {

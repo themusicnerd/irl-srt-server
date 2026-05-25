@@ -163,6 +163,7 @@ protected:
     void record_data2hls(char *data, int len);
     void check_hls_file();
     void close_hls_file();
+    void write_live_hls_playlist(bool ended);
 
 private:
 };

@@ -348,6 +348,56 @@ int CSLSRole::close()
     return 0;
 }
 
+void CSLSRole::write_live_hls_playlist(bool ended)
+{
+    if (m_record_hls_vod_filename[0] == '\0')
+    {
+        return;
+    }
+
+    char live_filename[FILENAME_MAX] = {0};
+    int ret = snprintf(live_filename, sizeof(live_filename), "%s/live.m3u8", m_record_hls_path);
+    if (ret < 0 || (unsigned)ret >= sizeof(live_filename))
+    {
+        spdlog::error("[{}] CSLSRole::write_live_hls_playlist, playlist path is too long.", fmt::ptr(this));
+        return;
+    }
+
+    int source_fd = ::open(m_record_hls_vod_filename, O_RDONLY);
+    if (source_fd < 0)
+    {
+        return;
+    }
+
+    int live_fd = ::open(live_filename, O_WRONLY | O_CREAT | O_TRUNC,
+                         S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    if (live_fd < 0)
+    {
+        ::close(source_fd);
+        return;
+    }
+
+    char header[URL_MAX_LEN] = {0};
+    snprintf(header, sizeof(header), "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:%d\n#EXT-X-PLAYLIST-TYPE:EVENT\n",
+             (int)(m_record_hls_target_duration + 1));
+    ::write(live_fd, header, strlen(header));
+
+    char buf[4096] = {0};
+    int len = 0;
+    while ((len = ::read(source_fd, buf, sizeof(buf))) > 0)
+    {
+        ::write(live_fd, buf, len);
+    }
+    if (ended)
+    {
+        const char *endlist = "#EXT-X-ENDLIST\n";
+        ::write(live_fd, endlist, strlen(endlist));
+    }
+
+    ::close(live_fd);
+    ::close(source_fd);
+}
+
 void CSLSRole::close_hls_file()
 {
 
@@ -360,6 +410,7 @@ void CSLSRole::close_hls_file()
     if (0 != m_record_hls_vod_fd)
     {
         ::close(m_record_hls_vod_fd);
+        write_live_hls_playlist(true);
         int vod_fd = 0;
         vod_fd = ::open(m_record_hls_vod_filename, O_RDONLY, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IXOTH);
         spdlog::info("[{}] CSLSRole::close_hls_file, prepare open '{}', fd={:d}.", fmt::ptr(this), m_record_hls_vod_filename, vod_fd);
@@ -467,6 +518,8 @@ void CSLSRole::check_hls_file()
         if (0 != m_record_hls_vod_fd)
         {
             ::write(m_record_hls_vod_fd, ts_item, strlen(ts_item));
+            ::fsync(m_record_hls_vod_fd);
+            write_live_hls_playlist(false);
         }
     }
     char full_ts_name[FILENAME_MAX] = {0};
