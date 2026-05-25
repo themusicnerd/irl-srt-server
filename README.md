@@ -45,13 +45,13 @@ The default SRT ports exposed by `docker-compose.gui.yml` are:
 | `30002/udp` | Studio direct publisher input |
 | `30003/udp` | Studio player output |
 
-To enable the active-stream table, set an API key in `src/sls.conf` before starting the container:
+The GUI image enables the active-stream table with a bundled local-preview API key:
 
 ```conf
-api_keys replace-with-a-random-secret;
+api_keys sls-gui-dashboard-local;
 ```
 
-Enter the same key in the web console. It is retained only in browser session storage and sent as the `Authorization` header for `/stats` requests.
+The dashboard fills this key into Stats Access automatically and sends it as the `Authorization` header for `/stats` requests. Because the image and web console expose this convenience key, it is not a security boundary. Replace it with a random secret in `src/sls.conf` before exposing the dashboard outside a trusted network.
 
 ### Media Preview
 
