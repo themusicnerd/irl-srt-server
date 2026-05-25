@@ -1,7 +1,7 @@
 # build stage
-FROM alpine:latest as build
+FROM alpine:latest AS build
 RUN apk update &&\
-    apk upgrade &&\ 
+    apk upgrade &&\
     apk add --no-cache linux-headers alpine-sdk cmake tcl openssl-dev zlib-dev
 WORKDIR /tmp
 COPY . /tmp/srt-live-server/
@@ -15,7 +15,7 @@ RUN make -j$(nproc)
 
 # final stage
 FROM alpine:latest
-ENV LD_LIBRARY_PATH /lib:/usr/lib:/usr/local/lib64
+ENV LD_LIBRARY_PATH=/lib:/usr/lib:/usr/local/lib64
 RUN apk update &&\
     apk upgrade &&\
     apk add --no-cache openssl libstdc++ &&\
