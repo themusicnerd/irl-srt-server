@@ -1,0 +1,15 @@
+services:
+  sls:
+    build: .
+    container_name: srt-live-server-gui
+    restart: unless-stopped
+    ports:
+      - "8181:8181/tcp"
+      - "4000:4000/udp"
+      - "4001:4001/udp"
+      - "4002:4002/udp"
+      - "30002:30002/udp"
+      - "30003:30003/udp"
+    volumes:
+      - ./src/sls.conf:/etc/sls/sls.conf:ro
+      - ./logs:/logs

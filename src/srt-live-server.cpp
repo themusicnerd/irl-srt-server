@@ -35,6 +35,7 @@ using namespace httplib;
 #include "SLSLog.hpp"
 #include "SLSManager.hpp"
 #include "AsyncHttpClient.hpp"
+#include "SLSWebUI.hpp"
 #include <thread>
 #include <chrono>
 
@@ -224,6 +225,14 @@ int main(int argc, char *argv[])
     if (strlen(conf_srt->cors_header) > 0) {
         strcpy(cors_header, conf_srt->cors_header);
     }
+
+    svr.Get("/", [&](const Request&, Response& res) {
+        res.set_content(SLS_DASHBOARD_HTML, "text/html; charset=utf-8");
+    });
+
+    svr.Get("/dashboard", [&](const Request&, Response& res) {
+        res.set_content(SLS_DASHBOARD_HTML, "text/html; charset=utf-8");
+    });
 
     svr.Get("/stats", [&](const Request& req, Response& res) {
         json ret;

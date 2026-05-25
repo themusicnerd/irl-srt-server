@@ -5,6 +5,48 @@
 srt-live-server (SLS) is an open source live streaming server for low latency based on Secure Reliable Tranport (SRT).
 Normally, the latency of transport by SLS is less than 1 second in internet.
 
+## Web Console Image
+
+This branch adds an embedded web console to the SRTLA-capable server. It is served by the existing HTTP listener, with no separate application process:
+
+- connection URL builder for direct SRT, SRTLA and playback roles
+- active publisher monitoring using the existing `/stats` API
+- latency, RTT, receive bitrate, loss, drops and receive buffer display
+- explicit guidance on the scope of SRT timestamp-based packet delivery (TSBPD)
+
+### Run with Docker Compose
+
+```bash
+mkdir -p logs
+docker compose -f docker-compose.gui.yml up --build -d
+```
+
+Open `http://localhost:8181/` after the image starts.
+
+The default SRT ports exposed by `docker-compose.gui.yml` are:
+
+| Port | Role |
+| --- | --- |
+| `4000/udp` | Player output for mobile/IRL streams |
+| `4001/udp` | Direct SRT publisher input |
+| `4002/udp` | SRTLA/bonded publisher input |
+| `30002/udp` | Studio direct publisher input |
+| `30003/udp` | Studio player output |
+
+To enable the active-stream table, set an API key in `src/sls.conf` before starting the container:
+
+```conf
+api_keys replace-with-a-random-secret;
+```
+
+Enter the same key in the web console. It is retained only in browser session storage and sent as the `Authorization` header for `/stats` requests.
+
+### Timing And Multiple Feeds
+
+TSBPD is active in normal SRT live-mode operation and restores the interval between packets delivered within an SRT connection. The configured/negotiated latency therefore provides a consistent buffering target for each stream.
+
+TSBPD does **not** synchronize separate camera feeds that were generated from independent clocks. For production feeds that must be frame-aligned, use a shared clock/timecode or genlock at source, or perform measured alignment in the receiving mixer. The console reports negotiated latency and receive timing health so mismatched buffering can be found, but it is not a frame synchronizer.
+
 ## Requirements
 
 Please install the SRT library first, refer to [SRT](https://github.com/Haivision/srt) for system enviroment setup.
